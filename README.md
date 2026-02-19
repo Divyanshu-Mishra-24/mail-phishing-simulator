@@ -1,102 +1,197 @@
-## Phishing / Spam Risk Dashboard (SRS + Design implementation)
+# 📧 Mail Phishing Simulator
 
-This project implements the web application described in `phishing_detector.srs.txt` and `📗 SYSTEM DESIGN DOCUMENT.txt`:
+A simple phishing/spam risk analyzer that connects to a mailbox using IMAP, scans recent emails, calculates a risk score (0–100), and displays results on a dashboard.
 
-- Connect a mailbox (IMAP app password)
-- Fetch last \(N\) emails
-- Analyze sender/content/URLs/attachments in-memory
-- Compute per-email risk score + risk factors
-- Store **only derived metrics** (no raw bodies stored)
-- Show dashboard charts + results list + exposure settings
-
-### Tech
-
-- **Backend**: FastAPI (Python)
-- **DB**: SQLite (default; easy to swap)
-- **Frontend**: Static single-page UI (Tailwind + Chart.js) served by the backend
+⚠️ **Currently supports Gmail only.**
 
 ---
 
-## Run locally (Windows)
+## 🚀 Features
 
-### 1) Backend setup
+- Connect Gmail using IMAP + App Password
+- Scan last N emails from INBOX
+- Analyze:
+  - Sender domain & reply-to mismatch
+  - Suspicious URLs (IP links, shorteners, risky TLDs)
+  - Risky attachments
+  - Phishing keywords
+  - Lightweight ML signal
+- Generate:
+  - Risk Score (0–100)
+  - Risk Level (Low / Medium / High / Critical)
+  - Risk Factors list
+- Stores only derived metrics (no raw email bodies saved)
+- Dashboard with charts + per-email results
 
-From the project root:
+---
+
+## ⚠️ Gmail Setup (Required)
+
+Google does NOT allow normal password login for IMAP.  
+You must enable IMAP + 2FA and generate an App Password.
+
+### 1) Enable IMAP
+1. Open Gmail  
+2. Settings → See all settings  
+3. Forwarding and POP/IMAP  
+4. Enable **IMAP**  
+5. Save changes  
+
+### 2) Enable 2-Step Verification
+1. Go to: https://myaccount.google.com/security  
+2. Turn ON **2-Step Verification**
+
+### 3) Generate App Password
+1. Go to: https://myaccount.google.com/apppasswords  
+2. Select:
+   - App: Mail  
+   - Device: Windows Computer (or Other)  
+3. Click Generate  
+4. Copy the 16-character password and use it in the app  
+
+---
+
+## 🛠 Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/mail-phishing-simulator.git
+cd mail-phishing-simulator/backend
+```
+
+---
+
+## 2. Create Virtual Environment
+
+### Windows (PowerShell)
 
 ```powershell
-cd "c:\Users\hp\OneDrive\Desktop\phy ms\backend"
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+### macOS / Linux
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+---
+
+## 3. Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-If you hit Windows “Access is denied” while creating a venv or installing packages (common with Desktop/OneDrive “protected folders”), create the venv in a non-protected location instead, e.g.:
+---
 
-```powershell
-py -m venv "$env:LOCALAPPDATA\venvs\mailbox-risk"
-& "$env:LOCALAPPDATA\venvs\mailbox-risk\Scripts\Activate.ps1"
-pip install -r "c:\Users\hp\OneDrive\Desktop\phy ms\backend\requirements.txt"
-```
+## 4. Set Encryption Key (Required)
 
-### 2) Set encryption key (required)
+Generate a key:
 
-The backend encrypts stored mailbox credentials using Fernet. You have **two options**:
-
-#### Option A: Use a `.env` file (recommended - persists across sessions)
-
-1. Generate a key:
-```powershell
+```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-2. Copy `backend/.env.example` to `backend/.env`:
-```powershell
-cd backend
-Copy-Item .env.example .env
+Create a file: `backend/.env`
+
+```env
+APP_ENCRYPTION_KEY=PASTE_YOUR_GENERATED_KEY_HERE
 ```
-
-3. Edit `backend/.env` and paste your generated key:
-```text
-APP_ENCRYPTION_KEY=your-generated-key-here
-```
-
-#### Option B: Set in PowerShell (temporary - only for current session)
-
-```powershell
-$env:APP_ENCRYPTION_KEY="PASTE_THE_KEY_HERE"
-```
-
-**Note**: Option A is recommended because the key persists. Option B requires setting it every time you open a new terminal.
-
-### 3) Start the server
-
-```powershell
-$env:PYTHONDONTWRITEBYTECODE=1
-python -m uvicorn app:app --reload --port 8000
-```
-
-Open the UI:
-
-- `http://127.0.0.1:8000/`
-
-API docs:
-
-- `http://127.0.0.1:8000/docs`
 
 ---
 
-## IMAP notes
+## 5. Run the Server
 
-- **Gmail**: IMAP must be enabled; use an **App Password** (requires 2FA).
-- **Outlook/Office365**: IMAP support depends on tenant settings; also prefer app passwords where available.
-
-This implementation focuses on the SRS requirement “OAuth OR IMAP app password” and provides the IMAP app-password flow. The API shape keeps room for adding OAuth later without changing the dashboard.
-
-## Data storage note
-
-By default the SQLite database is stored in **`%LOCALAPPDATA%\mailbox_risk\app.db`** to avoid writing inside protected folders. You can override this with:
-
-```powershell
-$env:DB_URL="sqlite:///C:/path/to/app.db"
+```bash
+python -m uvicorn app:app --reload --port 8000
 ```
 
+Open in browser:
+
+```
+http://127.0.0.1:8000/
+```
+
+API Documentation:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## 🧪 Tech Stack
+
+| Backend                        | Frontend | Email Protocol     |
+|--------------------------------|----------|--------------------|
+| Python 3.x                     | HTML5    | IMAP (Gmail)       |
+| FastAPI                        | CSS3     | SSL/TLS (Port 993) |
+| SQLAlchemy                     | Chart.js |                    |
+| SQLite                         |          |                    |
+| Cryptography (Fernet Encryption)|         |                    |
+| python-dotenv                  |          |                    |
+| scikit-learn (Mini ML model)   |          |                    |
+
+---
+
+## 📁 Project Structure
+
+```
+mail-phishing-simulator/
+│
+├── backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── .env                # (Not pushed to GitHub)
+│   └── app.db              # Auto-created SQLite DB
+│
+├── frontend/
+│   └── index.html
+│
+├── .gitignore
+├── README.md
+```
+
+---
+
+## 🟥 Risk Levels
+
+| Score    | Level    |
+|----------|----------|
+| 0–24     | Low      |
+| 25–49    | Medium   |
+| 50–74    | High     |
+| 75–100   | Critical |
+
+---
+
+## 🔒 Data Storage
+
+**Stored:**
+- Risk score
+- Risk level
+- Timestamp
+- Sender domain
+- Risk factors
+
+**Not Stored:**
+- Raw email bodies
+- Full attachments
+
+---
+
+## 📌 Notes
+
+- Gmail IMAP: `imap.gmail.com`
+- Port: `993`
+- SSL: Enabled
+
+---
+
+## ⚠️ Disclaimer
+
+This project is for educational and cybersecurity learning purposes only.
